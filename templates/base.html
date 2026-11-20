@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Budget Buddy App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='global2.css') }}" />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header style="margin-bottom: var(--space-xl);">
+        <h1><i data-lucide="wallet"></i> Budget Buddy</h1>
+        <nav>
+          <a href="{{ url_for('home')}}"><i data-lucide="home"></i> Home</a>
+          <a href="{{ url_for('expenses_list')}}"><i data-lucide="receipt"></i> Expenses</a>
+          <a href="{{ url_for('settings')}}"><i data-lucide="settings"></i> Settings</a>
+        </nav>
+      </header>
+      {# Flash messages area #} {% with messages =
+      get_flashed_messages(with_categories=true) %} {% if messages %}
+      <div class="flashes" style="margin: 12px 0">
+        {% for category, message in messages %}
+        <div
+          class="flash {{ category }}"
+          style="
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            background: #f0f0f0;
+          "
+        >
+          {{ message }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+      <main>{% block container %} {% endblock %}</main>
+      <footer
+        style="
+          margin-top: 40px;
+          padding: 20px 0;
+          text-align: center;
+          border-top: 1px solid #ddd;
+          color: #666;
+        "
+      >
+        <p>&copy; 2025 Budget Buddy. All rights reserved.</p>
+      </footer>
+    </div>
+    
+    <!-- Initialize Lucide Icons and Theme -->
+    <script>
+      // Initialize theme before page renders to prevent flash
+      (function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      })();
+      
+      // Initialize Lucide Icons
+      lucide.createIcons();
+    </script>
+  </body>
+</html>

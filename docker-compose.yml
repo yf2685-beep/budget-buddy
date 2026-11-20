@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:5002:5000"
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: development
+      MONGO_DBNAME: budget_db
+      MONGO_URI: mongodb://mongodb:27017
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env before starting}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+  mongodb:
+    image: mongo:6
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  mongodb-data:

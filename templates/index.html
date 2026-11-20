@@ -1,0 +1,732 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+    <h2><i data-lucide="wallet"></i> Welcome to Your Budget Buddy!</h2>
+    <p>Empower users to plan and track spending on mobile quickly and clearly!</p>
+
+    <!---Monthly Budget Overview-->
+
+        <!-- Monthly Budget Overview Card -->
+        <section id="monthly-budget-overview" style="margin:12px 0;">
+            <h3><i data-lucide="calendar-range"></i> Monthly Budget Overview</h3>
+            <div id="monthlyBudgetCard" class="card" style="position:relative; width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-md);">
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+                        <button id="mb-prev" class="btn" aria-label="Previous month"><i data-lucide="chevron-left"></i> Prev</button>
+                        <input list="mb-months" id="mb-select-month" aria-label="Select month" placeholder="e.g. Oct 2025" style="height: 2.5rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 0.875rem; font-family: inherit; cursor: text;" />
+                        <datalist id="mb-months"></datalist>
+                        <button id="mb-next" aria-label="Next month">Next <i data-lucide="chevron-right"></i></button>
+                        <p id="mb-monthyear" style="margin:0; font-weight:600; color:var(--text);"></p>
+                    </div>
+                </div>
+                <div id="mb-loading"><i data-lucide="loader"></i> Loading monthly summary...</div>
+
+                <div id="mb-content" style="display:none;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg); margin-bottom: var(--space-md);">
+                        <div style="text-align: center; padding: var(--space-md); border-radius: var(--radius); background: var(--muted-surface);">
+                            <div style="font-size: 0.875rem; color: var(--muted-text); margin-bottom: var(--space-xs);">
+                                <i data-lucide="wallet"></i> Budget
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--text);">$<span id="mb-budget">0.00</span></div>
+                        </div>
+                        <div style="text-align: center; padding: var(--space-md); border-radius: var(--radius); background: var(--muted-surface);">
+                            <div style="font-size: 0.875rem; color: var(--muted-text); margin-bottom: var(--space-xs);">
+                                <i data-lucide="credit-card"></i> Spent
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--text);">$<span id="mb-spent">0.00</span></div>
+                        </div>
+                        <div style="text-align: center; padding: var(--space-md); border-radius: var(--radius); background: var(--muted-surface);">
+                            <div style="font-size: 0.875rem; color: var(--muted-text); margin-bottom: var(--space-xs);">
+                                <i data-lucide="piggy-bank"></i> Remaining
+                            </div>
+                            <div class="mb-remaining-value" style="font-size: 1.75rem; font-weight: 700;">$<span id="mb-remaining">0.00</span></div>
+                        </div>
+                    </div>
+                    
+                    <div id="mb-actions" style="display:flex; gap: var(--space-sm); padding-top: var(--space-md); border-top: 1px solid var(--divider); justify-content: flex-end;">
+                        <a id="mb-view-link" href="#" style="display:none;" target="_blank" rel="noopener noreferrer">
+                                <button id="mb-view-btn" class="btn btn-icon btn-ghost" aria-label="View expenses for month" title="Open expenses for this month in a new tab"><i data-lucide="banknote"></i></button>
+                        </a>
+                        <!-- Note button: visible only when a monthly budget exists; opens modal showing the budget notes -->
+                        <button id="mb-note-btn" class="btn btn-icon btn-ghost" aria-label="Show monthly budget note" title="Show monthly budget note" style="display:none;"><i data-lucide="file-text"></i></button>
+                        <a id="mb-edit-link" href="#">
+                            <button id="mb-edit-btn" class="btn btn-icon btn-ghost" aria-label="Edit monthly budget"><i data-lucide="pencil"></i></button>
+                        </a>
+                        <a id="mb-delete-link" href="#" onclick="return confirm('Are you sure you want to delete this monthly budget?');">
+                            <button id="mb-delete-btn" class="btn btn-icon btn-ghost" aria-label="Delete monthly budget" style="color: var(--danger);"><i data-lucide="trash-2"></i></button>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="mb-no-budget" style="display:none; text-align:center; padding:20px 0;">
+                    <p id="mb-no-budget-text" style="color:#666; margin-bottom:12px;">No monthly budget set for <span id="mb-no-monthyear"></span>.</p>
+                    <a id="mb-add-link" class="btn btn-primary" href="{{ url_for('add_monthly_budget') }}"><i data-lucide="plus-circle"></i> New Monthly Budget</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Budget Note Modal -->
+        <div id="mb-note-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mb-note-title">
+            <div class="modal-backdrop" id="mb-note-backdrop" tabindex="-1"></div>
+            <div class="modal-panel" role="document">
+                <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--space-md);">
+                    <h3 id="mb-note-title" style="margin:0; font-size:1.125rem;"><i data-lucide="file-text"></i> Monthly Budget Note</h3>
+                    <button id="mb-note-close" class="btn btn-icon btn-ghost" aria-label="Close note modal"><i data-lucide="x"></i></button>
+                </header>
+                <div id="mb-note-body" style="min-height:72px; color:var(--text);">
+                    <p id="mb-note-content" style="white-space:pre-wrap; color:var(--muted-text);">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cards-row">
+            <!-- Category breakdown pie chart card -->
+            <section id="category-breakdown" style="margin:12px 0;">
+                <h3 class="card-title"><i data-lucide="pie-chart"></i> Expenses by Category (month)</h3>
+                <div id="cat-card" class="card small" style="display:flex; align-items:center; justify-content:center; position:relative;">
+                    <canvas id="cat-pie-canvas" width="280" height="280" style="display:none;" class="chart-canvas"></canvas>
+                    <div id="cat-no-data" style="text-align:center; color:#666;"><i data-lucide="loader" class="spin"></i> Loading...</div>
+                    <div id="cat-legend" class="legend-compact" style="position:absolute; right:8px; top:8px; max-width:140px; font-size:12px; display:none;"></div>
+                </div>
+            </section>
+
+        <!-- Daily expenses trend (30 days) -->
+            <!-- Daily expenses trend (30 days) -->
+            <section id="daily-trend" style="margin:12px 0;">
+                <h3 class="card-title"><i data-lucide="trending-up"></i> 30-day Expense Trend</h3>
+                <div id="trend-card" class="card medium">
+                    <canvas id="trend-canvas" width="600" height="200" style="display:none;" class="chart-canvas"></canvas>
+                    <div id="trend-no-data" style="color:#666; text-align:center; padding:20px;"><i data-lucide="loader" class="spin"></i> Loading...</div>
+                </div>
+            </section>
+        </div>
+
+    <!-- Placeholders for charts (future) -->
+    <!-- Add line chart for expenses over time here -->
+    <!-- Add pie chart for expenses by category here -->
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <script>
+            (function(){
+                // Fetch budget summary for current month/year and populate the card
+                const now = new Date();
+                const curMonthDefault = now.getMonth() + 1; // JS months are 0-based
+                const curYearDefault = now.getFullYear();
+                // Restore selected month from localStorage if present and not in future
+                let month = curMonthDefault;
+                let year = curYearDefault;
+                try {
+                    const saved = localStorage.getItem('selectedMonth'); // format YYYY-MM
+                    if (saved) {
+                        const [sy, sm] = saved.split('-').map(s=>parseInt(s,10));
+                        if (!isNaN(sy) && !isNaN(sm)) {
+                            if (sy < curYearDefault || (sy === curYearDefault && sm <= curMonthDefault) ){
+                                year = sy; month = sm;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.warn('localStorage not available', e);
+                }
+                const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                const monthYearEl = document.getElementById('mb-monthyear');
+                // show the currently-selected month/year (restored from localStorage when present)
+                if (monthYearEl) monthYearEl.textContent = `${monthNames[month-1]} ${year}`;
+                // also update the no-budget message month/year span
+                const nobudgetMonthYear = document.getElementById('mb-no-monthyear');
+                if (nobudgetMonthYear) nobudgetMonthYear.textContent = `${monthNames[month-1]} ${year}`;
+                // Add cache-busting timestamp to force fresh data
+                const loading = document.getElementById('mb-loading');
+                const content = document.getElementById('mb-content');
+                const nobudget = document.getElementById('mb-no-budget');
+                const addLink = document.getElementById('mb-add-link');
+                const editLink = document.getElementById('mb-edit-link');
+                const deleteLink = document.getElementById('mb-delete-link');
+                const actionsDiv = document.getElementById('mb-actions');
+                const mbNoteBtn = document.getElementById('mb-note-btn');
+
+                // month picker element
+                const monthPicker = document.getElementById('mb-select-month');
+                const prevBtn = document.getElementById('mb-prev');
+                const nextBtn = document.getElementById('mb-next');
+
+                // Chart.js instance for category breakdown
+                let catChart = null;
+                // Chart.js instance for trend line
+                let trendChart = null;
+
+                // replace native month picker with autocomplete list - populate datalist with recent months
+                if (monthPicker) {
+                    const nowForMax = new Date();
+                    const maxYear = nowForMax.getFullYear();
+                    const maxMonth = nowForMax.getMonth() + 1;
+                    // generate last 24 months options
+                    const months = [];
+                    for (let i = 0; i < 24; i++) {
+                        const d = new Date(nowForMax.getFullYear(), nowForMax.getMonth() - i, 1);
+                        const y = d.getFullYear();
+                        const m = d.getMonth() + 1;
+                        const iso = `${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}`;
+                        const label = `${monthNames[m-1]} ${y}`;
+                        months.push({iso, label});
+                    }
+                    const dataList = document.getElementById('mb-months');
+                    if (dataList) {
+                        dataList.innerHTML = '';
+                        months.forEach(o => {
+                            const opt = document.createElement('option');
+                            opt.value = o.iso; // keep value as YYYY-MM for compatibility
+                            opt.textContent = o.label;
+                            dataList.appendChild(opt);
+                        });
+                    }
+                    // if a saved value exists, use it; otherwise set to current
+                    if (!monthPicker.value) monthPicker.value = formatMonthPickerValue(year, month);
+                }
+
+                function setAddLink(m, y){
+                    if (addLink) addLink.href = `/monthly_budget/add?month=${m}&year=${y}`;
+                }
+
+                function persistSelectedMonth(y,m){
+                    try{ localStorage.setItem('selectedMonth', `${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}`); }catch(e){}
+                }
+
+                function formatMonthPickerValue(y, m){
+                    return `${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}`;
+                }
+
+                async function loadMonth(y, m){
+                    // ensure global currentMonth/currentYear reflect this load
+                    currentMonth = m; currentYear = y;
+                    // persist selection
+                    persistSelectedMonth(y,m);
+                    // update visible month/year labels and add link
+                    if (monthYearEl) monthYearEl.textContent = `${monthNames[m-1]} ${y}`;
+                    const nobudgetMonthYear = document.getElementById('mb-no-monthyear');
+                    if (nobudgetMonthYear) nobudgetMonthYear.textContent = `${monthNames[m-1]} ${y}`;
+                    if (monthPicker) monthPicker.value = formatMonthPickerValue(y, m);
+                    setAddLink(m, y);
+
+                    loading.style.display = 'block';
+                    content.style.display = 'none';
+                    nobudget.style.display = 'none';
+                    // hide action buttons until we know there is a budget
+                    if (actionsDiv) actionsDiv.style.display = 'none';
+                    if (editLink) editLink.href = '#';
+                    if (deleteLink) deleteLink.href = '#';
+
+                    const url = `/budget/summary/${m}/${y}?_=${Date.now()}`;
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) {
+                        loading.style.display = 'none';
+                        nobudget.style.display = 'block';
+                        if (actionsDiv) actionsDiv.style.display = 'none';
+                        try { window.__mb_show_note_button && window.__mb_show_note_button(false); } catch(e){}
+                        if (mbNoteBtn) mbNoteBtn.style.display = 'none';
+                            return;
+                        }
+
+                        const j = await res.json();
+                        const budget = j.budget ?? null;
+                        if (budget === null) {
+                        loading.style.display = 'none';
+                        nobudget.style.display = 'block';
+                        if (actionsDiv) actionsDiv.style.display = 'none';
+                        try { window.__mb_show_note_button && window.__mb_show_note_button(false); } catch(e){}
+                        if (mbNoteBtn) mbNoteBtn.style.display = 'none';
+                            return;
+                        }
+
+                        const spent = j.spent ?? 0;
+                        const remaining = (j.remaining_budget !== undefined && j.remaining_budget !== null)
+                                            ? j.remaining_budget
+                                            : (budget - spent);
+
+                        loading.style.display = 'none';
+                        content.style.display = 'block';
+
+                        document.getElementById('mb-budget').textContent = Number(budget).toFixed(2);
+                        document.getElementById('mb-spent').textContent = Number(spent).toFixed(2);
+                        const remEl = document.getElementById('mb-remaining');
+                        remEl.textContent = Number(remaining).toFixed(2);
+                        const remContainer = remEl.parentElement || remEl;
+                        if (Number(remaining) < 0) {
+                            remContainer.classList.add('money-negative');
+                        } else {
+                            remContainer.classList.remove('money-negative');
+                        }
+
+                        // try to wire up edit/delete links
+                        const viewLink = document.getElementById('mb-view-link');
+                        const editLink = document.getElementById('mb-edit-link');
+                        const deleteLink = document.getElementById('mb-delete-link');
+                        const actionsDiv = document.getElementById('mb-actions');
+                        if (j.budget_id && editLink && deleteLink) {
+                            editLink.href = `/monthly_budget/edit/${j.budget_id}`;
+                            deleteLink.href = `/monthly_budget/delete/${j.budget_id}`;
+                            if (viewLink) { viewLink.href = `/expenses_list?ym=${formatMonthPickerValue(y,m)}`; viewLink.style.display = 'inline-block'; }
+                            if (actionsDiv) actionsDiv.style.display = 'flex';
+                            try { window.__mb_show_note_button && window.__mb_show_note_button(true); } catch(e){}
+                            if (mbNoteBtn) mbNoteBtn.style.display = 'inline-block';
+                        } else if (editLink && deleteLink) {
+                            const getUrl = `/monthly_budget/get/${m}/${y}?_=${Date.now()}`;
+                            try {
+                                const r2 = await fetch(getUrl);
+                                if (r2.ok) {
+                                    const j2 = await r2.json();
+                                    if (j2.budget_id) {
+                                        editLink.href = `/monthly_budget/edit/${j2.budget_id}`;
+                                        deleteLink.href = `/monthly_budget/delete/${j2.budget_id}`;
+                                        if (viewLink) { viewLink.href = `/expenses_list?ym=${formatMonthPickerValue(y,m)}`; viewLink.style.display = 'inline-block'; }
+                                        if (actionsDiv) actionsDiv.style.display = 'flex';
+                                        try { window.__mb_show_note_button && window.__mb_show_note_button(true); } catch(e){}
+                                        if (mbNoteBtn) mbNoteBtn.style.display = 'inline-block';
+                                    }
+                                }
+                            } catch (e2) {
+                                console.error('failed to fetch budget id', e2);
+                            }
+                        }
+
+                    } catch (err) {
+                        loading.textContent = 'Could not load monthly summary';
+                        console.error('budget summary fetch error', err);
+                    }
+                    // after loading month data, update category breakdown
+                    try {
+                        await loadCategoryBreakdown(m, y);
+                        await loadDailyTrend(m, y);
+                    } catch (e) {
+                        console.error('category breakdown error', e);
+                    }
+                }
+
+                // wire up prev/go controls
+                // use mutable references for currentMonth/currentYear
+                let currentMonth = month;
+                let currentYear = year;
+                if (monthPicker) monthPicker.value = formatMonthPickerValue(currentYear, currentMonth);
+                setAddLink(currentMonth, currentYear);
+
+                prevBtn && prevBtn.addEventListener('click', function(){
+                    // decrement month
+                    let m = currentMonth;
+                    let y = currentYear;
+                    m -= 1;
+                    if (m < 1) { m = 12; y -= 1; }
+                    currentMonth = m; currentYear = y;
+                    loadMonth(y, m);
+                    // re-evaluate next button state
+                    updateNextButton();
+                });
+
+                // change month on manual picker change
+                monthPicker && monthPicker.addEventListener('change', function(){
+                    const v = monthPicker.value;
+                    if (!v) return;
+                    const [yStr, mStr] = v.split('-');
+                    const y2 = parseInt(yStr, 10);
+                    const m2 = parseInt(mStr, 10);
+                    const now = new Date();
+                    const maxY = now.getFullYear();
+                    const maxM = now.getMonth() + 1;
+                    if (y2 > maxY || (y2 === maxY && m2 > maxM)) {
+                        // clamp to current month
+                        currentYear = maxY; currentMonth = maxM;
+                        loadMonth(maxY, maxM);
+                        updateNextButton();
+                        return;
+                    }
+                    if (!isNaN(y2) && !isNaN(m2)) {
+                        currentMonth = m2; currentYear = y2;
+                        loadMonth(y2, m2);
+                        updateNextButton();
+                    }
+                });
+
+                // Next button handler (advance but not beyond current month)
+                nextBtn && nextBtn.addEventListener('click', function(){
+                    const now = new Date();
+                    const maxY = now.getFullYear();
+                    const maxM = now.getMonth() + 1;
+                    let m = currentMonth;
+                    let y = currentYear;
+                    m += 1;
+                    if (m > 12) { m = 1; y += 1; }
+                    // clamp to current month/year
+                    if (y > maxY || (y === maxY && m > maxM)) {
+                        m = maxM; y = maxY;
+                    }
+                    currentMonth = m; currentYear = y;
+                    loadMonth(y, m);
+                    updateNextButton();
+                });
+
+                function updateNextButton(){
+                    if (!nextBtn) return;
+                    const now = new Date();
+                    const maxY = now.getFullYear();
+                    const maxM = now.getMonth() + 1;
+                    if (currentYear > maxY || (currentYear === maxY && currentMonth >= maxM)){
+                        nextBtn.disabled = true;
+                    } else {
+                        nextBtn.disabled = false;
+                    }
+                }
+
+                // initial load for current month/year
+                loadMonth(currentYear, currentMonth);
+
+                // Category breakdown helper
+                async function loadCategoryBreakdown(m, y){
+                    // allow callers to omit params and use current selection
+                    if (typeof m === 'undefined' || typeof y === 'undefined') { m = currentMonth; y = currentYear; }
+                    const canvas = document.getElementById('cat-pie-canvas');
+                    const nodata = document.getElementById('cat-no-data');
+                    const legend = document.getElementById('cat-legend');
+                    canvas && (canvas.style.display = 'none');
+                    legend && (legend.style.display = 'none');
+                    if (nodata) nodata.textContent = 'Loading...';
+
+                    const url = `/budget/category-breakdown/${m}/${y}?_=${Date.now()}`;
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) {
+                            if (nodata) nodata.textContent = 'No data';
+                            return;
+                        }
+                        const j = await res.json();
+                        const cats = j.categories || [];
+                        if (!cats.length) {
+                            if (nodata) nodata.textContent = 'No data';
+                            return;
+                        }
+
+                        const labels = cats.map(c=>c.category || 'Uncategorized');
+                        const data = cats.map(c=>Number(c.spent || 0));
+                        const total = data.reduce((s,v)=>s+v,0);
+                        if (!total) { if (nodata) nodata.textContent='No data'; return; }
+
+                        // prepare colors
+                        const colors = ["#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ac"];
+                        const bg = labels.map((_,i)=>colors[i % colors.length]);
+
+                        // create or update Chart.js pie
+                        if (typeof Chart === 'undefined') {
+                            // fallback: simple text
+                            if (nodata) nodata.textContent = 'No data';
+                            return;
+                        }
+
+                        const ctx = canvas.getContext('2d');
+                        if (catChart) { catChart.destroy(); catChart = null; }
+                        catChart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: labels,
+                                datasets: [{ data: data, backgroundColor: bg }]
+                            },
+                            options: {
+                                responsive: false,
+                                plugins: {
+                                    legend: { position: 'right', labels: { boxWidth:12 } },
+                                    tooltip: { enabled: true }
+                                }
+                            }
+                        });
+
+                        // populate legend HTML (Chart renders its own but we keep a compact textual legend too)
+                        if (legend) {
+                            // build legend entries with a data-index so we can attach click handlers
+                            legend.innerHTML = labels.map((lab,i)=>{
+                                const pct = ((data[i]/total)*100).toFixed(1);
+                                return `<div data-index="${i}" style="padding:4px 0;">` +
+                                        `<span style=\"display:inline-block;width:12px;height:12px;background:${bg[i]};margin-right:6px;border:1px solid #fff;\"></span>` +
+                                        `${lab}: $${Number(data[i]).toFixed(2)} (${pct}%)` +
+                                        `</div>`;
+                            }).join('');
+                            legend.style.display = 'block';
+
+                            // make legend items clickable to toggle chart visibility for that slice
+                            Array.from(legend.querySelectorAll('div[data-index]')).forEach(function(el){
+                                el.style.cursor = 'pointer';
+                                el.addEventListener('click', function(){
+                                    const idx = parseInt(el.getAttribute('data-index'), 10);
+                                    if (!Number.isFinite(idx) || !catChart) return;
+                                    try {
+                                        // toggle chart visibility for the data index
+                                        if (typeof catChart.toggleDataVisibility === 'function') {
+                                            catChart.toggleDataVisibility(idx);
+                                        } else if (catChart.data && catChart.data.datasets && catChart.data.datasets[0] && catChart.getDatasetMeta) {
+                                            // fallback: hide by setting data to 0 (not ideal) — prefer toggleDataVisibility
+                                            const meta = catChart.getDatasetMeta(0);
+                                            meta.data[idx].hidden = !meta.data[idx].hidden;
+                                        }
+                                        // visually mute/unmute the legend entry
+                                        el.style.opacity = (el.style.opacity === '0.5') ? '1' : '0.5';
+                                        catChart.update();
+                                    } catch (e) {
+                                        console.error('legend toggle error', e);
+                                    }
+                                });
+                            });
+                        }
+                        canvas.style.display = 'block';
+                        if (nodata) nodata.textContent = '';
+
+                    } catch (err) {
+                        if (nodata) nodata.textContent = 'No data';
+                        console.error('category breakdown fetch error', err);
+                    }
+                }
+
+                // Load 30-day daily totals and render trend line
+                async function loadDailyTrend(m, y){
+                    // allow callers to omit params and use current selection
+                    if (typeof m === 'undefined' || typeof y === 'undefined') { m = currentMonth; y = currentYear; }
+                    const canvas = document.getElementById('trend-canvas');
+                    const nodata = document.getElementById('trend-no-data');
+                    canvas && (canvas.style.display = 'none');
+                    if (nodata) nodata.textContent = 'Loading...';
+
+                    const url = `/budget/daily_totals/${m}/${y}?_=${Date.now()}`;
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) {
+                            if (nodata) nodata.textContent = 'No data';
+                            return;
+                        }
+                        const j = await res.json();
+                        const days = j.days || [];
+                        if (!days.length) {
+                            if (nodata) nodata.textContent = 'No data';
+                            return;
+                        }
+
+                        const labels = days.map(d=>d.date.split('-').pop()); // day of month
+                        const data = days.map(d=>Number(d.total || 0));
+
+                        if (typeof Chart === 'undefined') {
+                            if (nodata) nodata.textContent = 'No chart library';
+                            return;
+                        }
+
+                        const ctx = canvas.getContext('2d');
+                        if (trendChart) { trendChart.destroy(); trendChart = null; }
+                        trendChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Daily total',
+                                    data: data,
+                                    borderColor: '#4e79a7',
+                                    backgroundColor: 'rgba(78,121,167,0.08)',
+                                    fill: true,
+                                    tension: 0.2,
+                                    pointRadius: 3
+                                }]
+                            },
+                            options: {
+                                responsive: false,
+                                scales: {
+                                    x: { display: true, title: { display: true, text: 'Day' } },
+                                    y: { display: true, title: { display: true, text: 'Amount ($)' }, beginAtZero: true }
+                                },
+                                plugins: { 
+                                    legend: { display: false }, 
+                                    tooltip: { 
+                                        enabled: true,
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                if (context.parsed.y !== null) {
+                                                    label += '$' + context.parsed.y.toFixed(2);
+                                                }
+                                                return label;
+                                            }
+                                        }
+                                    } 
+                                },
+                                onClick: (event, activeElements) => {
+                                    if (activeElements && activeElements.length > 0) {
+                                        const dataIndex = activeElements[0].index;
+                                        const clickedDate = days[dataIndex].date; // YYYY-MM-DD format
+                                        // Extract year-month for the ym parameter
+                                        const ymValue = clickedDate.substring(0, 7); // Gets YYYY-MM
+                                        // Navigate to expenses page filtered by this month
+                                        window.location.href = `/expenses_list?ym=${ymValue}`;
+                                    }
+                                }
+                            }
+                        });
+
+                        canvas.style.display = 'block';
+                        if (nodata) nodata.textContent = '';
+
+                    } catch (err) {
+                        if (nodata) nodata.textContent = 'No data';
+                        console.error('daily trend fetch error', err);
+                    }
+                }
+            })();
+        </script>
+
+        <script>
+            // Note modal wiring: fetch the monthly budget notes and show modal
+            (function(){
+                const noteBtn = document.getElementById('mb-note-btn');
+                const noteModal = document.getElementById('mb-note-modal');
+                const noteBackdrop = document.getElementById('mb-note-backdrop');
+                const noteClose = document.getElementById('mb-note-close');
+                const noteContent = document.getElementById('mb-note-content');
+
+                // Helper to open modal and set content
+                function openNoteModal(text){
+                    if (!noteModal) return;
+                    noteContent.textContent = text || 'No note';
+                    // use flex to center the panel (CSS modal uses flexbox)
+                    noteModal.style.display = 'flex';
+                    noteModal.classList.add('show');
+                    noteModal.setAttribute('aria-hidden', 'false');
+                    // focus close button for accessibility
+                    try { noteClose && noteClose.focus(); } catch(e){}
+                }
+
+                function closeNoteModal(){
+                    if (!noteModal) return;
+                    noteModal.classList.remove('show');
+                    noteModal.style.display = 'none';
+                    noteModal.setAttribute('aria-hidden', 'true');
+                }
+
+                // local month names fallback (same order as the other script) for parsing the human-readable label
+                const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+                // Ensure modal is hidden on initial load
+                if (noteModal) {
+                    noteModal.style.display = 'none';
+                    noteModal.setAttribute('aria-hidden', 'true');
+                }
+
+                // When the main loadMonth routine detects a budget it sets j.budget_id or fetches the budget id itself.
+                // We'll listen for clicks on the note button and fetch the monthly budget document directly.
+                if (noteBtn) {
+                    noteBtn.addEventListener('click', async function(){
+                        // read current month/year from picker or current labels
+                        const picker = document.getElementById('mb-select-month');
+                        let v = picker ? picker.value : null;
+                        if (!v) {
+                            // try the visible month label
+                            const my = document.getElementById('mb-monthyear');
+                            if (my) {
+                                // attempt to parse label like 'October 2025'
+                                const parts = my.textContent.trim().split(' ');
+                                if (parts.length >= 2) {
+                                    const year = parseInt(parts.pop(), 10);
+                                    const monthName = parts.join(' ');
+                                    const monthIdx = monthNames.indexOf(monthName) + 1;
+                                    if (monthIdx > 0 && Number.isFinite(year)) v = `${String(year).padStart(4,'0')}-${String(monthIdx).padStart(2,'0')}`;
+                                }
+                            }
+                        }
+                        if (!v) { openNoteModal('No note'); return; }
+                        const [yy, mm] = v.split('-');
+                        const y = parseInt(yy, 10); const m = parseInt(mm, 10);
+                        if (!Number.isFinite(y) || !Number.isFinite(m)) { openNoteModal('No note'); return; }
+
+                        const url = `/monthly_budget/get/${m}/${y}?_=${Date.now()}`;
+                        try {
+                            const res = await fetch(url);
+                            if (!res.ok) {
+                                openNoteModal('No note');
+                                return;
+                            }
+                            const j = await res.json();
+                            const note = j.notes || j.note || '';
+                            openNoteModal(note || 'No note');
+                        } catch (e) {
+                            console.error('failed to fetch monthly budget note', e);
+                            openNoteModal('No note');
+                        }
+                    });
+                }
+
+                // close handlers
+                noteClose && noteClose.addEventListener('click', closeNoteModal);
+                noteBackdrop && noteBackdrop.addEventListener('click', closeNoteModal);
+                document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') closeNoteModal(); });
+
+                // Expose a small helper so loadMonth can show the note button when budget exists
+                window.__mb_show_note_button = function(show){ if (noteBtn) noteBtn.style.display = show ? 'inline-block' : 'none'; };
+            })();
+        </script>
+
+
+    {# Search Form (hidden) #}
+    {#
+    <div>
+        <form method="GET" action="{{ url_for('search') }}">
+            <input type="text" name="category" placeholder="Search by category..." 
+                   value="{{ search_category if search_category else '' }}">
+            <input type="submit" value="Search">
+            {% if search_category %}
+                <a href="{{ url_for('home') }}">Clear Search</a>
+            {% endif %}
+        </form>
+    </div>
+    #}
+
+    {# Add New Plan Form (hidden) #}
+    {#
+    <article class="plan new-plan">
+        {% include 'new_plan_form.html' %}
+    </article>
+    #}
+
+    {# Display Existing Plans (hidden) #}
+    {#
+    <div>
+        <h3>Your Budget Plans</h3>
+        {% for plan in plans %}
+        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+            <div>
+                <a href="{{ url_for('edit', plan_id=plan._id)}}">Edit</a> | 
+                <a href="{{ url_for('delete', plan_id=plan._id)}}">Delete</a>
+            </div>
+    
+            <!-- title  -->
+            <h4>{{ plan.title }} - {{ plan.category }}</h4>
+    
+            <!-- date -->
+            <p><strong>Date:</strong> 
+                {% if plan.day and plan.month and plan.year %}
+                    {{ plan.day }}/{{ plan.month }}/{{ plan.year }}
+                {% else %}
+                    Not specified
+                {% endif %}
+            </p>
+    
+                <div>
+                <strong>Actual:</strong> ${{ "%.2f"|format(plan.actual_expense) }}
+            </div>
+    
+            {% if plan.notes %}
+            <p><strong>Notes:</strong> {{ plan.notes }}</p>
+            {% endif %}
+    
+            <p><small>Created: {{ plan.created_at.strftime("%H:%M on %d %B %Y") }}</small></p>
+        </div>
+        {% endfor %}
+    
+    </div>
+    #}
+
+{% endblock %}

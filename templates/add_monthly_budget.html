@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block container %}
+  <h2><i data-lucide="plus-circle"></i> Add Monthly Budget</h2>
+  <p>Use this form to create a monthly budget. Note: multiple budgets for the same month/year are allowed (history preserved).</p>
+
+  <form method="POST" action="{{ url_for('add_monthly_budget') }}" id="addBudgetForm">
+    <div>
+      <label><i data-lucide="dollar-sign"></i> Budget ($): *</label>
+      <input type="number" name="budget" step="0.01" min="0" required />
+    </div>
+
+    <div>
+      <label><i data-lucide="calendar"></i> Month (1-12): *</label>
+      <input type="number" name="month" id="monthInput" min="1" max="12" required />
+    </div>
+
+    <div>
+      <label><i data-lucide="calendar"></i> Year: *</label>
+      <input type="number" name="year" id="yearInput" min="2000" max="2100" required />
+    </div>
+
+    <div>
+      <label><i data-lucide="file-text"></i> Notes:</label>
+      <textarea name="notes" placeholder="Optional notes"></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a href="{{ url_for('home') }}"><i data-lucide="x"></i> Cancel</a>
+      <input type="submit" value="Create Budget" />
+    </div>
+  </form>
+
+  <script>
+    // Auto-fill current month and year, or use server-provided prefill values
+    (function(){
+      const serverMonth = {{ prefill_month|default('null') }};
+      const serverYear = {{ prefill_year|default('null') }};
+      const now = new Date();
+      const curMonth = now.getMonth() + 1;
+      const curYear = now.getFullYear();
+
+      if (serverMonth && serverYear) {
+        // clamp server values to not be in the future
+        let sm = parseInt(serverMonth, 10);
+        let sy = parseInt(serverYear, 10);
+        if (isNaN(sm) || isNaN(sy)) {
+          sm = curMonth; sy = curYear;
+        }
+        if (sy > curYear || (sy === curYear && sm > curMonth)) {
+          sm = curMonth; sy = curYear;
+        }
+        document.getElementById('monthInput').value = sm;
+        document.getElementById('yearInput').value = sy;
+        return;
+      }
+
+      document.getElementById('monthInput').value = curMonth;
+      document.getElementById('yearInput').value = curYear;
+    })();
+
+    // Prevent submitting a future month/year
+    (function(){
+      const form = document.getElementById('addBudgetForm');
+      form && form.addEventListener('submit', function(e){
+        const mi = parseInt(document.getElementById('monthInput').value, 10);
+        const yi = parseInt(document.getElementById('yearInput').value, 10);
+        const now = new Date();
+        const curM = now.getMonth() + 1;
+        const curY = now.getFullYear();
+        if (yi > curY || (yi === curY && mi > curM)) {
+          e.preventDefault();
+          alert('Cannot create a monthly budget for a future month. Please select the current month or earlier.');
+        }
+      });
+    })();
+  </script>
+
+{% endblock %}
