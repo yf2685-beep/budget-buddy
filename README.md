@@ -6,6 +6,16 @@ Personal portfolio copy of [swe-students-fall2025/2-web-app-bytesized](https://g
 
 This copy starts from a clean source snapshot so historical database credentials are not copied into its Git history. It retains the original [GPL-3.0 license](LICENSE), team attribution and application source. Local-development configuration was updated on 2026-11-20 to use a separate MongoDB container without a shared cloud connection.
 
+## Animated walkthrough
+
+Review the monthly budget → record an expense → filter by category → see the updated total.
+
+![Budget Buddy workflow](docs/media/budget-workflow.gif)
+
+Captured from the actual Flask UI using fictional spending records and an isolated in-memory MongoDB substitute. The recorded expense changes the displayed total from 365.00 to 377.50; no personal or team financial data is used.
+
+[Recreate the animation](docs/DEMO.md). Playback timing is edited for readability.
+
 ## Product workflow
 
 **Set a monthly budget → plan spending → record actual expenses → filter and review the month.**
